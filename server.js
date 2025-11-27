@@ -8,10 +8,38 @@ dotenv.config()
 const app = express()
 const PORT = process.env.PORT || 3001
 
-// Middleware
+// Middleware - CORS configuration
+// Allow multiple origins for development and production
+const allowedOrigins = [
+  process.env.FRONTEND_URL, // Production URL (e.g., https://www.divisy.co)
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:3005',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:3001',
+  'http://127.0.0.1:3005',
+].filter(Boolean) // Remove undefined values
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*', // Configure your frontend URL
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true)
+    
+    // Check if origin is in allowed list
+    if (allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
+      callback(null, true)
+    } else {
+      // In production, only allow configured frontend URL
+      if (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL) {
+        callback(null, true)
+      } else {
+        callback(new Error('Not allowed by CORS'))
+      }
+    }
+  },
   credentials: true,
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }))
 app.use(express.json())
 
